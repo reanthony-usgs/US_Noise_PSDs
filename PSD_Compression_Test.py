@@ -36,16 +36,8 @@ def write_results(net, sta, chan, ctime, power, freq):
     fname = 'PSD_' + net + '_' + sta + '_' + chan + '_'
     fname += str(ctime.year) + '_' + str(ctime.julday).zfill(3)
     fname += str(ctime.hour).zfill(2)
-    f = open(fname + '.txt', 'w')
-    for pow in power:
-        f.write(str(pow) + '\n')
-    f.close()
-    txtsize = os.stat(fname + '.txt').st_size
     f = open(fname+ '.pckl', 'wb')
     pickle.dump(power, f)
-    pcklsize = os.stat(fname + '.pckl').st_size
-    print('Here is the txt file size:' + str(txtsize))
-    print('Here is the pickle size:' + str(pcklsize))
     f.close()
     return
 
@@ -66,29 +58,30 @@ def calc_psd(net, sta, chan, ctime, time_run = True):
         print('It took', time.time() - data_time , ' s to load in all the data')
         psd_time = time.time()
 
+
     for stT in st.slide(60.*60, 60.*60.):
+        try:
+            if 'fs' not in vars():
+                fs = 1./stT[0].stats.delta
+            # Default uses a Hann Window and demeans the data
+            freq, power = welch(stT[0].data, fs=fs, nperseg=nfft,
+                                noverlap=nfft*windlap, detrend='linear')
+            freq, power = freq[1:], power[1:]
+            # if this is a time sink we could change this
 
-        if 'fs' not in vars():
-            fs = 1./stT[0].stats.delta
-        # Default uses a Hann Window and demeans the data
-        freq, power = welch(stT[0].data, fs=fs, nperseg=nfft,
-                            noverlap=nfft*windlap, detrend='linear')
-        freq, power = freq[1:], power[1:]
-        # if this is a time sink we could change this
-        resp, freqR = stT[0].stats.response.get_evalresp_response(t_samp=1./fs,
-                                                              nfft=nfft, output='ACC')
-        resp = resp[1:]
-        power = np.abs(power)
-        power = 10.*np.log10(power/(np.abs(resp)**2))
-
+            resp, freqR = stT[0].stats.response.get_evalresp_response(t_samp=1./fs,
+                                                                  nfft=nfft, output='ACC')
+            resp = resp[1:]
+            power = np.abs(power)
+            power = 10.*np.log10(power/(np.abs(resp)**2))
+        except:
+            print('Problem computing PSD' + stT[0].id())
+            continue
         if time:
             print('It took', time.time() - psd_time , 's to calculate the PSDs')
-            write_time = time.time()
-        write_results(net, sta, chan, ctime, power, freq)
+        write_results(net, sta, chan, stT[0].stats.starttime, power, freq)
 
-        if time:
-            print('It took', time.time() - write_time , 's to write PSDs')
-        return
+    return
 
 # Grab station start time and end time
 stime = UTCDateTime('1995-001T00:00:00')
