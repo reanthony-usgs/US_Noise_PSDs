@@ -52,7 +52,6 @@ def write_results(net, sta, loc, chan, ctime, power, freq):
     f.close()
     return
 
-
 def calc_psd(net, sta, chan, ctime, debug = False):
     estime = ctime + (24.*60.*60.) 
     result_str =  str(ctime.julday) + ', ' + str(ctime.year) + ', ' + chan + '\n'
@@ -78,6 +77,7 @@ def calc_psd(net, sta, chan, ctime, debug = False):
         
         data_count = np.count_nonzero(stT[0].data)
         total_count = window*fs
+
         if data_count/total_count >= Comp_Tres:
             try:
                 # Default uses a Hann Window and demeans the data
@@ -94,7 +94,6 @@ def calc_psd(net, sta, chan, ctime, debug = False):
                 loc = stT[0].stats.location
                 write_results(net, sta, loc, chan, stT[0].stats.starttime, power, freq)
             except:
-                
                 print('Problem computing PSD' + stT[0].id())
                 continue
         else:
@@ -102,6 +101,7 @@ def calc_psd(net, sta, chan, ctime, debug = False):
             '% Complete. Skipping this Window.') 
             continue
             
+
     return 'Complete, ' + result_str
         
 
@@ -134,6 +134,4 @@ def run_station(sta):
 from multiprocessing import Pool
 pool = Pool(80)
 pool.map(run_station, stas)
-
-
 
