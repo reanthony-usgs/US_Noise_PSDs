@@ -12,13 +12,15 @@ client = Client("IRIS")
 
 test_run = True
 
-net, chan = "US", "BHZ"
+net, chan = "TA", "LHZ"
 
 # Size of PSD Window in Seconds
 window = 3600
 Comp_Tres = 0.9
 
-nfft = 2**15
+# This needs changed for different sample rates 
+# Suggested BHZ - 2**15, LHZ - 2**10
+nfft = 2**10
 windlap = 0.75
 
 ##################################### Psd calculation
@@ -106,7 +108,7 @@ etime = UTCDateTime('2019-001T00:00:00')
 
 if test_run:
     client = Client()
-    inv = client.get_stations(starttime=stime, endtime=etime, station="M*",
+    inv = client.get_stations(starttime=stime, endtime=etime, station="*K",
                               channel=chan, network=net, level="response")
     print(inv)
 else:
@@ -130,7 +132,7 @@ def run_station(net_sta):
         etime = UTCDateTime('2019-001T00:00:00')
     if test_run:
         stime = UTCDateTime('2018-001T00:00:00')
-        etime = stime + 3*24*60*60
+        etime = stime + 365*24*60*60
     ctime = stime
     f = open('log_file_' + tsta, 'w')
     while ctime <= etime:
