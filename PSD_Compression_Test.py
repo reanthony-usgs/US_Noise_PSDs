@@ -43,7 +43,7 @@ def write_results(net, sta, loc, chan, ctime, power, freq):
         os.mkdir(sta + '_PSD')
 
     if not os.path.exists(sta + '_PSD/' + net + '_' + sta + '_' + loc + '_' + chan + '_freqs.txt'):
-        f = open(net + '_' + sta + '_' + chan + '_freqs.txt', 'w')
+        f = open(sta + '_PSD/' + net + '_' + sta + '_' + chan + '_freqs.txt', 'w')
         for fr in freq:
             f.write(str(fr) + '\n')
         f.close()
@@ -55,13 +55,13 @@ def write_results(net, sta, loc, chan, ctime, power, freq):
     f.close()
     return
 
-def calc_psd(net, sta, chan, ctime, debug = False):
+def calc_psd(net, sta, chan, ctime, inv_sta, debug = False):
     estime = ctime + (24.*60.*60.)
     result_str =  str(ctime.julday) + ', ' + str(ctime.year) + ', ' + chan + '\n'
     try:
     #if True:
         st = client.get_waveforms(net, sta, "*", chan, ctime, estime,
-                                   attach_response=True)
+                                   attach_response=False)
         st.detrend('constant')
         st.merge(fill_value=0.)
         # This should make sure we have 24 complete hours of data
@@ -83,8 +83,9 @@ def calc_psd(net, sta, chan, ctime, debug = False):
                                     noverlap=nfft*windlap, detrend='linear')
                 freq, power = freq[1:], power[1:]
                 # if this is a time sink we could change this
-                resp, freqR = stT[0].stats.response.get_evalresp_response(t_samp=1./fs,
-                                                                      nfft=nfft, output='ACC')
+                resp_inv = inv_sta.get_response(stT[0].id, stT[0].stats.starttime)
+                resp, freqR = resp_inv.get_evalresp_response(t_samp=1./fs,
+                                                             nfft=nfft, output='ACC')
                 resp = resp[1:]
                 power = np.abs(power)
                 power = 10.*np.log10(power/(np.abs(resp)**2))
@@ -136,7 +137,7 @@ def run_station(net_sta):
     ctime = stime
     f = open('log_file_' + tsta, 'w')
     while ctime <= etime:
-        info = calc_psd(tnet, tsta, chan, ctime)
+        info = calc_psd(tnet, tsta, chan, ctime, inv_sta)
         f.write(info)
         ctime += 24.*60.*60.
     f.close()
