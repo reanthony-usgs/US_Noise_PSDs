@@ -10,6 +10,10 @@ from scipy.signal import welch
 # "Global" variables
 client = Client("IRIS")
 
+test_run = True
+
+net, chan = "US", "BHZ"
+
 # Size of PSD Window in Seconds
 window = 3600
 Comp_Tres = 0.9
@@ -17,16 +21,13 @@ Comp_Tres = 0.9
 nfft = 2**15
 windlap = 0.75
 
-net, sta, chan = "US", "*", "BHZ"
-
 ##################################### Psd calculation
 def get_dataless(net, chan, stime, etime, client):
     if os.path.exists(net + '_metadata.pickle'):
         with open(net + '_metadata.pickle', 'rb') as fhand:
-            inv = pickle.load(fhand) 
+            inv = pickle.load(fhand)
     else:
-        client = Client()  
-
+        client = Client()
         inv = client.get_stations(starttime=stime, endtime=etime, station="*",
                                   channel=chan, network=net, level="response")
         with open(net + '_metadata.pickle', 'wb') as fhand:
@@ -38,7 +39,7 @@ def get_dataless(net, chan, stime, etime, client):
 def write_results(net, sta, loc, chan, ctime, power, freq):
     if not os.path.exists(sta + '_PSD'):
         os.mkdir(sta + '_PSD')
-    
+
     if not os.path.exists(sta + '_PSD/' + net + '_' + sta + '_' + loc + '_' + chan + '_freqs.txt'):
         f = open(net + '_' + sta + '_' + chan + '_freqs.txt', 'w')
         for fr in freq:
@@ -53,31 +54,26 @@ def write_results(net, sta, loc, chan, ctime, power, freq):
     return
 
 def calc_psd(net, sta, chan, ctime, debug = False):
-    estime = ctime + (24.*60.*60.) 
+    estime = ctime + (24.*60.*60.)
     result_str =  str(ctime.julday) + ', ' + str(ctime.year) + ', ' + chan + '\n'
     try:
     #if True:
         st = client.get_waveforms(net, sta, "*", chan, ctime, estime,
                                    attach_response=True)
-        st.detrend('constant')                           
-        st.merge(fill_value=0.)    
-                    
+        st.detrend('constant')
+        st.merge(fill_value=0.)
         # This should make sure we have 24 complete hours of data
         st.trim(starttime=ctime, endtime=estime, pad=True, fill_value=0.)
         if debug:
-            print(st) 
-        
+            print(st)
     except:
         return 'IRIS Problem, ' + result_str
 
     for stT in st.slide(window, window):
-        
         if 'fs' not in vars():
                 fs = 1./stT[0].stats.delta
-        
         data_count = np.count_nonzero(stT[0].data)
         total_count = window*fs
-
         if data_count/total_count >= Comp_Tres:
             try:
                 # Default uses a Hann Window and demeans the data
@@ -85,7 +81,6 @@ def calc_psd(net, sta, chan, ctime, debug = False):
                                     noverlap=nfft*windlap, detrend='linear')
                 freq, power = freq[1:], power[1:]
                 # if this is a time sink we could change this
-    
                 resp, freqR = stT[0].stats.response.get_evalresp_response(t_samp=1./fs,
                                                                       nfft=nfft, output='ACC')
                 resp = resp[1:]
@@ -98,40 +93,56 @@ def calc_psd(net, sta, chan, ctime, debug = False):
                 continue
         else:
             print('Not enough data in this window:', (data_count/total_count)*100,
-            '% Complete. Skipping this Window.') 
+            '% Complete. Skipping this Window.')
             continue
-            
+
 
     return 'Complete, ' + result_str
-        
+
 
 # Grab station start time and end time
 stime = UTCDateTime('1995-001T00:00:00')
 etime = UTCDateTime('2019-001T00:00:00')
-                          
-inv = get_dataless(net, chan, stime, etime, client)
 
-stas = []
+if test_run:
+    client = Client()
+    inv = client.get_stations(starttime=stime, endtime=etime, station="M*",
+                              channel=chan, network=net, level="response")
+    print(inv)
+else:
+    inv = get_dataless(net, chan, stime, etime, client)
+
+
+
+nets_stas = []
 for net in inv:
     for sta in net:
-        stas.append(sta.code)
+        nets_stas.append(net.code + '_' + sta.code)
 
 
-def run_station(sta):
+def run_station(net_sta):
+    tnet, tsta = net_sta.split('_')
     # Using inv as a global variable
-    inv_sta = inv.select(station=sta)
+    inv_sta = inv.select(station=tsta)
     stime = inv_sta[0][0].start_date
     etime = inv_sta[0][0].end_date
+    if etime >= UTCDateTime('2019-001T00:00:00'):
+        etime = UTCDateTime('2019-001T00:00:00')
+    if test_run:
+        stime = UTCDateTime('2018-001T00:00:00')
+        etime = stime + 3*24*60*60
     ctime = stime
-    f = open('log_file_' + sta, 'w')
+    f = open('log_file_' + tsta, 'w')
     while ctime <= etime:
-        info = calc_psd(net, sta, chan, ctime)
+        info = calc_psd(tnet, tsta, chan, ctime)
         f.write(info)
         ctime += 24.*60.*60.
     f.close()
     return
 
+#for net_sta in nets_stas:
+#    print('on sta: ' + net_sta.split('_')[1])
+#    run_station(net_sta)
 from multiprocessing import Pool
-pool = Pool(80)
-pool.map(run_station, stas)
-
+pool = Pool(30)
+pool.map(run_station, nets_stas)
