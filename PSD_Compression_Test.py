@@ -59,7 +59,6 @@ def calc_psd(net, sta, chan, ctime, inv_sta, debug = False):
     estime = ctime + (24.*60.*60.)
     result_str =  str(ctime.julday) + ', ' + str(ctime.year) + ', ' + chan + '\n'
     try:
-    #if True:
         st = client.get_waveforms(net, sta, "*", chan, ctime, estime,
                                    attach_response=False)
         st.detrend('constant')
@@ -109,7 +108,7 @@ etime = UTCDateTime('2019-001T00:00:00')
 
 if test_run:
     client = Client()
-    inv = client.get_stations(starttime=stime, endtime=etime, station="*K",
+    inv = client.get_stations(starttime=stime, endtime=etime, station="*",
                               channel=chan, network=net, level="response")
     print(inv)
 else:
@@ -120,7 +119,10 @@ else:
 nets_stas = []
 for net in inv:
     for sta in net:
-        nets_stas.append(net.code + '_' + sta.code)
+        nets_stas.append(str(net.code + '_' + sta.code))
+
+
+print(nets_stas)
 
 
 def run_station(net_sta):
@@ -137,8 +139,11 @@ def run_station(net_sta):
     ctime = stime
     f = open('log_file_' + tsta, 'w')
     while ctime <= etime:
-        info = calc_psd(tnet, tsta, chan, ctime, inv_sta)
-        f.write(info)
+        try:
+            info = calc_psd(tnet, tsta, chan, ctime, inv_sta)
+            f.write(info)
+        except:
+            f.write('Outerloop issue, ' + str(ctime.julday) + ', ' + str(ctime.year) + ', ' + chan + '\n')
         ctime += 24.*60.*60.
     f.close()
     return
