@@ -12,6 +12,8 @@ client = Client("IRIS")
 
 test_run = True
 
+path = '/data/TA_ALASKA_2018_BHZ_PSDS/'
+
 net, chan = "TA", "LHZ"
 
 # Size of PSD Window in Seconds
@@ -25,32 +27,32 @@ windlap = 0.75
 
 ##################################### Psd calculation
 def get_dataless(net, chan, stime, etime, client):
-    if os.path.exists(net + '_metadata.pickle'):
-        with open(net + '_metadata.pickle', 'rb') as fhand:
+    if os.path.exists(path + net + '_metadata.pickle'):
+        with open(path + net + '_metadata.pickle', 'rb') as fhand:
             inv = pickle.load(fhand)
     else:
         client = Client()
         inv = client.get_stations(starttime=stime, endtime=etime, station="*",
                                   channel=chan, network=net, level="response")
-        with open(net + '_metadata.pickle', 'wb') as fhand:
+        with open(path + net + '_metadata.pickle', 'wb') as fhand:
             pickle.dump(inv, fhand)
     return inv
 
 
 
 def write_results(net, sta, loc, chan, ctime, power, freq):
-    if not os.path.exists(sta + '_PSD'):
-        os.mkdir(sta + '_PSD')
+    if not os.path.exists(path + sta + '_PSD'):
+        os.mkdir(path + sta + '_PSD')
 
-    if not os.path.exists(sta + '_PSD/' + net + '_' + sta + '_' + loc + '_' + chan + '_freqs.txt'):
-        f = open(sta + '_PSD/' + net + '_' + sta + '_' + chan + '_freqs.txt', 'w')
+    if not os.path.exists(path + sta + '_PSD/' + net + '_' + sta + '_' + loc + '_' + chan + '_freqs.txt'):
+        f = open(path + sta + '_PSD/' + net + '_' + sta + '_' + chan + '_freqs.txt', 'w')
         for fr in freq:
             f.write(str(fr) + '\n')
         f.close()
     fname = 'PSD_' + net + '_' + sta + '_' + loc + '_' + chan + '_'
     fname += str(ctime.year) + '_' + str(ctime.julday).zfill(3)
     fname += str(ctime.hour).zfill(2)
-    f = open(sta + '_PSD/' + fname+ '.pckl', 'wb')
+    f = open(path + sta + '_PSD/' + fname+ '.pckl', 'wb')
     pickle.dump(power, f)
     f.close()
     return
@@ -137,7 +139,7 @@ def run_station(net_sta):
         stime = UTCDateTime('2018-001T00:00:00')
         etime = stime + 365*24*60*60
     ctime = stime
-    f = open('log_file_' + tsta, 'w')
+    f = open(path + 'log_file_' + tsta, 'w')
     while ctime <= etime:
         try:
             info = calc_psd(tnet, tsta, chan, ctime, inv_sta)
