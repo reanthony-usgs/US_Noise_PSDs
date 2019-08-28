@@ -12,7 +12,7 @@ client = Client("IRIS")
 
 test_run = True
 
-path = '/data/TA_ALASKA_2018_BHZ_PSDS/'
+path = '/data/LHZ_TA/'
 
 net, chan = "TA", "LHZ"
 
@@ -110,7 +110,7 @@ etime = UTCDateTime('2019-001T00:00:00')
 
 if test_run:
     client = Client()
-    inv = client.get_stations(starttime=stime, endtime=etime, station="*",
+    inv = client.get_stations(starttime=stime, endtime=etime, station="*K",
                               channel=chan, network=net, level="response")
     print(inv)
 else:
