@@ -2,6 +2,7 @@
 import time
 import pickle
 import os
+import glob
 import numpy as np
 from obspy.clients.fdsn import Client
 from obspy.core import UTCDateTime
@@ -56,11 +57,30 @@ def write_results(net, sta, loc, chan, ctime, power, freq):
     pickle.dump(power, f)
     f.close()
     return
+    
+    
+def psd_done(net, sta, loc, chan, ctime):
+    fname = 'PSD_' + net + '_' + sta + '_' + loc + '_' + chan + '_'
+    fname += str(ctime.year) + '_' + str(ctime.julday).zfill(3)
+    fname += str(ctime.hour).zfill(2)
+    print(fname)
+    return os.path.exists(path + sta + '_PSD/' + fname + '.pckl')
+    
+def data_done(net, sta, chan, ctime):
+    fname = 'PSD_' + net + '_' + sta + '_*_' + chan + '_'
+    fname += str(ctime.year) + '_' + str(ctime.julday).zfill(3)
+    files = glob.glob(path + sta + '_PSD/' + fname + '*.pckl')
+    return len(files)
+        
 
 def calc_psd(net, sta, chan, ctime, inv_sta, debug = False):
     estime = ctime + (24.*60.*60.)
     result_str =  str(ctime.julday) + ', ' + str(ctime.year) + ', ' + chan + '\n'
     try:
+
+        num_files = data_done(net, sta, chan, ctime)
+        if num_files == 24:
+            return 'Not grabbing'
         st = client.get_waveforms(net, sta, "*", chan, ctime, estime,
                                    attach_response=False)
         st.detrend('constant')
@@ -71,8 +91,13 @@ def calc_psd(net, sta, chan, ctime, inv_sta, debug = False):
             print(st)
     except:
         return 'IRIS Problem, ' + result_str
-
+    
     for stT in st.slide(window, window):
+        if psd_done(net, sta, stT[0].stats.location, chan, stT[0].stats.starttime):
+            if debug:
+                print('Skipping:' + net + ' ' + sta + ' ' + stT[0].stats.location +  ' ' + chan)
+                print(ctime)
+            continue
         if 'fs' not in vars():
                 fs = 1./stT[0].stats.delta
         data_count = np.count_nonzero(stT[0].data)
@@ -137,22 +162,25 @@ def run_station(net_sta):
         etime = UTCDateTime('2019-001T00:00:00')
     if test_run:
         stime = UTCDateTime('2018-001T00:00:00')
-        etime = stime + 365*24*60*60
+        etime = stime + 2*24*60*60
     ctime = stime
     f = open(path + 'log_file_' + tsta, 'w')
     while ctime <= etime:
         try:
             info = calc_psd(tnet, tsta, chan, ctime, inv_sta)
-            f.write(info)
+            if info == 'Not grabbing':
+                pass
+            else:
+                f.write(info)
         except:
             f.write('Outerloop issue, ' + str(ctime.julday) + ', ' + str(ctime.year) + ', ' + chan + '\n')
         ctime += 24.*60.*60.
     f.close()
     return
 
-#for net_sta in nets_stas:
-#    print('on sta: ' + net_sta.split('_')[1])
-#    run_station(net_sta)
-from multiprocessing import Pool
-pool = Pool(30)
-pool.map(run_station, nets_stas)
+for net_sta in nets_stas:
+    print('on sta: ' + net_sta.split('_')[1])
+    run_station(net_sta)
+#from multiprocessing import Pool
+#pool = Pool(30)
+#pool.map(run_station, nets_stas)
