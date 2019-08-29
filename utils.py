@@ -46,6 +46,8 @@ def get_psd_stats(DB_path, sta, starttime, endtime, prctile, debug = False):
     prctile_psd = np.percentile(PSD_Array, prctile,0)    
     F_path = glob.glob(DB_path +  sta + '_PSD/*_freqs.txt')
     freqs = np.loadtxt(str(F_path[0]))
+    pers = np.array(1./freqs)
+    prctile_psd = np.array(prctile_psd)
     return 1./freqs, prctile_psd
     
 def get_dataless(net, chan, stime, etime, client):
