@@ -11,7 +11,7 @@ from scipy.signal import welch
 # "Global" variables
 client = Client("IRIS")
 
-test_run = True
+test_run = False
 
 path = '/data/LHZ_TA/'
 
@@ -162,7 +162,7 @@ def run_station(net_sta):
         etime = UTCDateTime('2019-001T00:00:00')
     if test_run:
         stime = UTCDateTime('2018-001T00:00:00')
-        etime = stime + 2*24*60*60
+        etime = stime + 356*24*60*60
     ctime = stime
     f = open(path + 'log_file_' + tsta, 'w')
     while ctime <= etime:
@@ -178,9 +178,9 @@ def run_station(net_sta):
     f.close()
     return
 
-for net_sta in nets_stas:
-    print('on sta: ' + net_sta.split('_')[1])
-    run_station(net_sta)
-#from multiprocessing import Pool
-#pool = Pool(30)
-#pool.map(run_station, nets_stas)
+#for net_sta in nets_stas:
+#    print('on sta: ' + net_sta.split('_')[1])
+#    run_station(net_sta)
+from multiprocessing import Pool
+pool = Pool(30)
+pool.map(run_station, nets_stas)
