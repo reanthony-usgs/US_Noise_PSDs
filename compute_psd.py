@@ -13,9 +13,9 @@ client = Client("IRIS")
 
 test_run = False
 
-path = '/data/LHZ_TA/'
+path = '/data/BHZ_TA/'
 
-net, chan = "TA", "LHZ"
+net, chan = "TA", "BHZ"
 
 # Size of PSD Window in Seconds
 window = 3600
@@ -182,5 +182,5 @@ def run_station(net_sta):
 #    print('on sta: ' + net_sta.split('_')[1])
 #    run_station(net_sta)
 from multiprocessing import Pool
-pool = Pool(30)
+pool = Pool(10)
 pool.map(run_station, nets_stas)
