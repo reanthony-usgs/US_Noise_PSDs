@@ -208,15 +208,14 @@ def run_station(net_sta):
         os.mkdir(path)
     f = open(path + 'log_file_' + tsta, 'w')
     while ctime <= etime:
-        #try:
-        if True:
+        try:
             info = calc_psd(tnet, tsta, chan1, chan2, ctime, inv_sta)
             if info == 'Not grabbing':
                 pass
             else:
                 f.write(info)
-        #except:
-        #    f.write('Outerloop issue, ' + str(ctime.julday) + ', ' + str(ctime.year) + ', ' + chan1 + ', '  + chan2 + '\n')
+        except:
+            f.write('Outerloop issue, ' + str(ctime.julday) + ', ' + str(ctime.year) + ', ' + chan1 + ', '  + chan2 + '\n')
         ctime += 24.*60.*60.
     f.close()
     return
