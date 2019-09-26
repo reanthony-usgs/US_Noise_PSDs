@@ -20,11 +20,17 @@ net, chan1, chan2 = "US", "BHZ", "BH1"
 
 # Size of PSD Window in Seconds
 window = 3600
-Comp_Tres = 0.9
+Overlap = 0.5
 
-# This needs changed for different sample rates 
+# QC Parametres 
+Comp_Tres = 0.9
+SM_SF = 0.125
+SM_EF = 0.25
+
+
+# This needs changed for different sample rates !! 
 # Suggested BHZ - 2**15, LHZ - 2**10
-nfft = 2**10
+nfft = 2**15
 windlap = 0.75
 
 ##################################### Psd calculation
@@ -102,7 +108,7 @@ def calc_psd(net, sta, chan1, chan2, ctime, inv_sta, debug = False):
     except:
         return 'IRIS Problem, ' + result_str
     
-    for stT in st.slide(window, window):
+    for stT in st.slide(window, window*overlap):
         if psd_done(net, sta, stT[0].stats.location, chan1, chan2, stT[0].stats.starttime):
             if debug:
                 print('Skipping:' + net + ' ' + sta + ' ' + stT[0].stats.location +  ' ' + chan1, + ' ' + chan2)
@@ -202,7 +208,7 @@ def run_station(net_sta):
         etime = UTCDateTime('2019-001T00:00:00')
     if test_run:
         stime = UTCDateTime('2018-001T00:00:00')
-        etime = stime + 356*24*60*60
+        etime = stime + 10*24*60*60
     ctime = stime
     if not os.path.exists(path):
         os.mkdir(path)
