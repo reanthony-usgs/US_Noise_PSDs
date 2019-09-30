@@ -13,10 +13,11 @@ from matplotlib.mlab import csd
 client = Client("IRIS")
 
 test_run = True
+debug = True
 
 path = '/data/test_case/'
 
-net, chan1, chan2 = "US", "BHZ", "BH1"
+net, chan1, chan2 = "IU", "BHZ", "BHZ"
 
 # Size of PSD Window in Seconds
 window = 3600
@@ -24,9 +25,6 @@ Overlap = 0.5
 
 # QC Parametres 
 Comp_Tres = 0.9
-SM_SF = 0.125
-SM_EF = 0.25
-
 
 # This needs changed for different sample rates !! 
 # Suggested BHZ - 2**15, LHZ - 2**10
@@ -65,6 +63,7 @@ def write_results(net, sta, loc, chan1, chan2, ctime, power, freq, phase=False):
     fname = tag + '_' + net + '_' + sta + '_' + loc + '_' + chan1 + '_' + chan2 + '_'
     fname += str(ctime.year) + '_' + str(ctime.julday).zfill(3)
     fname += str(ctime.hour).zfill(2)
+    fname += str(ctime.minute).zfill(2)
     f = open(path + sta + '_' + tag + '/' + fname+ '.pckl', 'wb')
     pickle.dump(power, f)
     f.close()
@@ -75,6 +74,7 @@ def psd_done(net, sta, loc, chan1, chan2, ctime):
     fname = 'PSD_' + net + '_' + sta + '_' + loc + '_' + chan1 + '_' + chan2 + '_'
     fname += str(ctime.year) + '_' + str(ctime.julday).zfill(3)
     fname += str(ctime.hour).zfill(2)
+    fname += str(ctime.minute).zfill(2)
     print(fname)
     return os.path.exists(path + sta + '_PSD/' + fname + '.pckl')
     
@@ -88,6 +88,7 @@ def data_done(net, sta, chan1, chan2, ctime):
 def calc_psd(net, sta, chan1, chan2, ctime, inv_sta, debug = False):
     estime = ctime + (24.*60.*60.)
     result_str =  str(ctime.julday) + ', ' + str(ctime.year) + ', ' + chan1 + ', ' + chan2 + '\n'
+    
     try:
 
         num_files = data_done(net, sta, chan1, chan2, ctime)
@@ -108,7 +109,8 @@ def calc_psd(net, sta, chan1, chan2, ctime, inv_sta, debug = False):
     except:
         return 'IRIS Problem, ' + result_str
     
-    for stT in st.slide(window, window*overlap):
+    for stT in st.slide(window, window*Overlap):
+        
         if psd_done(net, sta, stT[0].stats.location, chan1, chan2, stT[0].stats.starttime):
             if debug:
                 print('Skipping:' + net + ' ' + sta + ' ' + stT[0].stats.location +  ' ' + chan1, + ' ' + chan2)
@@ -117,6 +119,7 @@ def calc_psd(net, sta, chan1, chan2, ctime, inv_sta, debug = False):
         if 'fs' not in vars():
                 fs = 1./stT[0].stats.delta
         if chan1 == chan2:
+                
             data_count = np.count_nonzero(stT[0].data)
         else:    
             data_count1 = np.count_nonzero(stT[0].data)
@@ -181,7 +184,7 @@ etime = UTCDateTime('2019-001T00:00:00')
 
 if test_run:
     client = Client()
-    inv = client.get_stations(starttime=stime, endtime=etime, station="*K",
+    inv = client.get_stations(starttime=stime, endtime=etime, station="ANMO",
                               channel="*H*", network=net, level="response")
     print(inv)
 else:
@@ -207,7 +210,7 @@ def run_station(net_sta):
     if etime >= UTCDateTime('2019-001T00:00:00'):
         etime = UTCDateTime('2019-001T00:00:00')
     if test_run:
-        stime = UTCDateTime('2018-001T00:00:00')
+        stime = UTCDateTime('2019-001T00:00:01')
         etime = stime + 10*24*60*60
     ctime = stime
     if not os.path.exists(path):
